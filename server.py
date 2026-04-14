@@ -12,7 +12,7 @@ import time
 import threading
 import subprocess
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory, render_template
+from flask import Flask, request, jsonify, send_from_directory, render_template, Response
 from flask_cors import CORS
 from dotenv import load_dotenv
 
@@ -37,6 +37,30 @@ def _emoji_to_text(emoji_str):
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
+
+# ── SECURITY BLOCK: Lock down the app ─────────────────────────────────────────
+def check_auth(username, password):
+    # Get secure credentials from Environment Variables (or use defaults)
+    correct_user = os.getenv('APP_USERNAME', 'admin')
+    correct_pass = os.getenv('APP_PASSWORD', 'lumi2024')
+    return username == correct_user and password == correct_pass
+
+def authenticate():
+    return Response(
+        'Access Denied: Please log in to use the Lumi Dashboard.', 401,
+        {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+@app.before_request
+def require_login():
+    # Allow CORS preflight checks to pass through
+    if request.method == 'OPTIONS':
+        return
+    
+    auth = request.authorization
+    if not auth or not check_auth(auth.username, auth.password):
+        return authenticate()
+# ──────────────────────────────────────────────────────────────────────────────
+
 
 # ── In-memory job store (replace with DynamoDB in production) ─────────────────
 JOBS = {}  # job_id -> dict
