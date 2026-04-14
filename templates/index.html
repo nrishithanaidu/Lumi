@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumi — Document Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:      #080705;
+      --black2:     #0e0c09;
+      --black3:     #141209;
+      --black4:     #1c190e;
+      --black5:     #252117;
+      --gold:       #c9a84c;
+      --gold2:      #e8c56a;
+      --gold3:      #f5d880;
+      --gold-dim:   rgba(201,168,76,0.12);
+      --gold-glow:  rgba(201,168,76,0.25);
+      --gold-line:  rgba(201,168,76,0.3);
+      --cream:      #f0e8d0;
+      --cream2:     #c8bfa8;
+      --cream3:     #8c8070;
+      --cream4:     #4a4538;
+      --cream5:     #2a2620;
+      --text:       #d4c9b0;
+      --text2:      #8a7f6e;
+      --text3:      #4a4338;
+      --border:     rgba(201,168,76,0.1);
+      --border2:    rgba(201,168,76,0.18);
+      --border3:    rgba(201,168,76,0.28);
+      --success:    #4a9e6b;
+      --warning:    #c9a84c;
+      --danger:     #9e4a4a;
+      --glow-gold:  0 0 24px rgba(201,168,76,0.2), 0 0 6px rgba(201,168,76,0.1);
+      --shadow:     0 4px 24px rgba(0,0,0,0.5);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--black);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Background atmosphere ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% -5%, rgba(201,168,76,0.055) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 95% 90%, rgba(201,168,76,0.03) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 25% at 5% 80%, rgba(201,168,76,0.02) 0%, transparent 50%);
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.015) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ── Topline accent ── */
+    .topline {
+      position: fixed; top: 0; left: 0; right: 0; height: 1px; z-index: 200;
+      background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--gold3) 50%, var(--gold) 70%, transparent 100%);
+      opacity: 0.6;
+    }
+
+    /* ── Nav ── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,7,5,0.96);
+      backdrop-filter: blur(28px) saturate(1.6);
+      border-bottom: 1px solid var(--border2);
+      height: 68px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 36px;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.4);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none; cursor: pointer;
+    }
+    .logo-mark {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold3) 100%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--glow-gold);
+      transition: transform 0.25s, box-shadow 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .logo-mark::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+    }
+    .logo-mark:hover { transform: scale(1.06); box-shadow: 0 0 36px rgba(201,168,76,0.4), 0 0 12px rgba(201,168,76,0.2); }
+    .logo-mark svg { width: 17px; height: 17px; fill: var(--black); position: relative; z-index: 1; }
+    .logo-text { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: var(--gold2); letter-spacing: 0.5px; }
+    .logo-sub  { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--cream3); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link {
+      padding: 9px 18px; border-radius: 8px;
+      font-size: 13px; font-weight: 400; letter-spacing: 0.3px;
+      color: var(--cream3); cursor: pointer; text-decoration: none;
+      transition: color 0.2s, background 0.2s;
+      border: none; background: transparent; font-family: inherit;
+      position: relative;
+    }
+    .nav-link:hover { color: var(--cream); background: rgba(201,168,76,0.07); }
+    .nav-link.active { color: var(--gold2); background: rgba(201,168,76,0.1); }
+    .nav-link.active::after {
+      content: ''; position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 4px; border-radius: 50%; background: var(--gold);
+    }
+
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--cream4);
+      transition: background 0.3s; box-shadow: 0 0 0 2px rgba(201,168,76,0.1);
+    }
+    .status-dot.connected { background: var(--success); box-shadow: 0 0 8px rgba(74,158,107,0.4); }
+    .status-dot.error     { background: var(--danger); }
+    .nav-user {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, var(--cream4), var(--black4));
+      border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-family: 'DM Mono', monospace;
+      color: var(--gold); cursor: pointer; transition: border-color 0.2s;
+    }
+    .nav-user:hover { border-color: var(--gold); }
+
+    /* ── Layout ── */
+    .layout { display: grid; grid-template-columns: 210px 1fr; min-height: calc(100vh - 68px); position: relative; z-index: 1; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: rgba(14,12,9,0.95);
+      border-right: 1px solid var(--border);
+      padding: 16px 10px;
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    .sidebar-section {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px; letter-spacing: 1.8px; text-transform: uppercase;
+      color: var(--cream4); padding: 18px 10px 7px; font-weight: 400;
+    }
+    .sidebar-item {
+      padding: 8px 11px; border-radius: 8px;
+      font-size: 12.5px; font-weight: 400; color: var(--cream3);
+      cursor: pointer; display: flex; align-items: center; gap: 9px;
+      text-decoration: none; transition: all 0.18s;
+      border: 1px solid transparent; position: relative;
+      background: transparent; font-family: inherit;
+    }
+    .sidebar-item:hover { color: var(--cream); background: rgba(201,168,76,0.05); }
+    .sidebar-item.active {
+      color: var(--gold2); background: rgba(201,168,76,0.08);
+      border-color: var(--border2);
+    }
+    .sidebar-item.active::before {
+      content: ''; position: absolute; left: -1px; top: 50%; transform: translateY(-50%);
+      width: 2px; height: 18px; border-radius: 0 2px 2px 0; background: var(--gold);
+    }
+    .sidebar-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.6; transition: opacity 0.2s; }
+    .sidebar-item:hover svg, .sidebar-item.active svg { opacity: 1; }
+    .sidebar-badge {
+      margin-left: auto; background: var(--gold); color: var(--black);
+      font-size: 9px; padding: 1px 6px; border-radius: 10px;
+      font-weight: 600; font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Content ── */
+    .content { background: var(--black); padding: 28px 32px; display: flex; flex-direction: column; gap: 22px; }
+
+    /* ── Page Header ── */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; }
+    .page-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px; font-weight: 500; color: var(--gold2);
+      letter-spacing: 0.3px; line-height: 1.2;
+    }
+    .page-sub { font-size: 12.5px; color: var(--text2); margin-top: 5px; font-weight: 300; letter-spacing: 0.2px; }
+    .page-sub em { color: var(--gold); font-style: normal; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+      color: var(--black); border: none; padding: 10px 20px;
+      border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+      font-family: inherit; letter-spacing: 0.3px;
+      transition: all 0.25s; position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; gap: 7px;
+      text-decoration: none;
+    }
+    .btn-primary::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--glow-gold); }
+    .btn-primary:hover::before { opacity: 1; }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-outline {
+      background: rgba(201,168,76,0.05); color: var(--gold);
+      border: 1px solid var(--border2); padding: 9px 18px;
+      border-radius: 8px; font-size: 12.5px; font-family: inherit;
+      cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-outline:hover { background: rgba(201,168,76,0.1); border-color: var(--border3); color: var(--gold2); }
+    .btn-ghost {
+      background: transparent; color: var(--cream3); border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: 7px; font-size: 12px; font-family: inherit;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-ghost:hover { color: var(--cream); border-color: var(--border2); background: rgba(255,255,255,0.03); }
+    
+    .btn-delete {
+      background: transparent; color: var(--text3); border: none; padding: 6px;
+      border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex;
+      align-items: center; justify-content: center; z-index: 2; margin-left: auto;
+    }
+    .btn-delete:hover { color: var(--danger); background: rgba(158,74,74,0.1); }
+
+    /* ── Metrics ── */
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .metric {
+      background: var(--black2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      position: relative; overflow: hidden;
+    }
+    .metric::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .metric:hover { border-color: var(--border2); box-shadow: 0 0 20px rgba(201,168,76,0.06); }
+    .metric:hover::before { opacity: 1; }
+    .metric-label { font-size: 10.5px; color: var(--cream4); letter-spacing: 1.2px; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 10px; }
+    .metric-value { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; color: var(--gold2); line-height: 1; }
+    .metric-sub   { font-size: 11px; color: var(--text2); margin-top: 5px; }
+
+    /* ── Cards / Panels ── */
+    .card {
+      background: var(--black2); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(201,168,76,0.02);
+    }
+    .card-title { font-size: 13px; font-weight: 500; color: var(--cream); letter-spacing: 0.15px; }
+    .card-sub   { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .card-body  { padding: 20px; }
+
+    /* ── Drop Zone ── */
+    .dropzone {
+      border: 1.5px dashed var(--border2); border-radius: 12px;
+      padding: 40px 30px; text-align: center; cursor: pointer;
+      transition: all 0.25s; background: rgba(201,168,76,0.02);
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.drag-over {
+      border-color: var(--gold); background: rgba(201,168,76,0.05);
+      box-shadow: 0 0 28px rgba(201,168,76,0.07);
+    }
+    .dropzone-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+    .dropzone-title { font-size: 14px; font-weight: 500; color: var(--cream); margin-bottom: 6px; }
+    .dropzone-hint  { font-size: 12px; color: var(--text2); }
+    .dropzone-hint span { color: var(--gold); }
+
+    /* ── Progress ── */
+    .progress-wrap { padding: 14px 0; }
+    .progress-bar { height: 3px; background: var(--black4); border-radius: 3px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; width: 0%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold3));
+      transition: width 0.4s ease;
+      box-shadow: 0 0 8px rgba(201,168,76,0.4);
+    }
+    .progress-meta { display: flex; justify-content: space-between; margin-top: 8px; }
+    .progress-label { font-size: 11px; color: var(--text2); }
+    .progress-pct   { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); }
+
+    /* ── Doc Items ── */
+    .doc-list { display: flex; flex-direction: column; gap: 1px; }
+    .doc-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      border-radius: 8px; cursor: pointer; transition: background 0.2s;
+      border: 1px solid transparent;
+    }
+    .doc-item:hover { background: rgba(201,168,76,0.04); border-color: var(--border); }
+    .doc-icon {
+      width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: 0.5px;
+    }
+    .doc-icon.pdf { background: rgba(201,168,76,0.12); color: var(--gold); border: 1px solid var(--border2); }
+    .doc-icon.img { background: rgba(74,158,107,0.12); color: var(--success); border: 1px solid rgba(74,158,107,0.2); }
+    .doc-name { font-size: 13px; color: var(--cream); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* ── Document Cards (Grid) ── */
+    .doc-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .doc-card {
+      background: var(--black2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .doc-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(201,168,76,0.05);
+    }
+    .doc-card-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    /* ── Status Pills ── */
+    .status-pill {
+      font-size: 9.5px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+      font-family: 'DM Mono', monospace; letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .status-upload   { background: rgba(201,168,76,0.12); color: var(--gold); }
+    .status-proc     { background: rgba(74,107,158,0.15); color: #6a9ee8; }
+    .status-done     { background: rgba(74,158,107,0.12); color: var(--success); }
+    .status-failed   { background: rgba(158,74,74,0.15); color: #e86a6a; }
+
+    /* ── Alert ── */
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 12.5px; margin-bottom: 4px; border: 1px solid; }
+    .alert-error   { background: rgba(158,74,74,0.08); border-color: rgba(158,74,74,0.25); color: #e8a0a0; }
+    .alert-success { background: rgba(74,158,107,0.08); border-color: rgba(74,158,107,0.25); color: #90d4ae; }
+    .alert-info    { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.2); color: var(--gold2); }
+    .hidden { display: none !important; }
+
+    /* ── Form ── */
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-label { font-size: 11.5px; color: var(--cream3); letter-spacing: 0.3px; }
+    .form-input, .form-select {
+      background: var(--black3); border: 1px solid var(--border2); border-radius: 8px;
+      color: var(--cream); padding: 10px 14px; font-size: 13px; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.08); }
+    .form-input::placeholder { color: var(--text3); }
+    .form-select option { background: var(--black3); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* ── Toggle ── */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-info h4 { font-size: 13px; color: var(--cream); font-weight: 400; }
+    .toggle-info p  { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--black5); border-radius: 20px;
+      border: 1px solid var(--border2); transition: all 0.25s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; left: 3px; top: 50%; transform: translateY(-50%);
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--cream4); transition: all 0.25s;
+    }
+    .toggle input:checked + .toggle-slider { background: rgba(201,168,76,0.15); border-color: var(--gold); }
+    .toggle input:checked + .toggle-slider::before { left: calc(100% - 15px); background: var(--gold); }
+
+    /* ── Q&A Chat ── */
+    .chat-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 420px; }
+    .qa-msg {
+      max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.55; word-break: break-word;
+    }
+    .qa-user { background: rgba(201,168,76,0.1); border: 1px solid var(--border2); color: var(--cream); align-self: flex-end; border-radius: 12px 12px 3px 12px; }
+    .qa-ai   { background: var(--black3); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-radius: 12px 12px 12px 3px; }
+    .qa-thinking { display: flex; gap: 5px; padding: 14px 18px; }
+    .qa-thinking span {
+      width: 6px; height: 6px; background: var(--gold); border-radius: 50%;
+      animation: think 1.2s ease-in-out infinite;
+    }
+    .qa-thinking span:nth-child(2) { animation-delay: 0.2s; }
+    .qa-thinking span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes think { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+    .chat-input-row { display: flex; gap: 8px; padding: 16px; border-top: 1px solid var(--border); }
+    .chat-input {
+      flex: 1; background: var(--black3); border: 1px solid var(--border2); border-radius: 8px;
+      color: var(--cream); padding: 10px 14px; font-size: 13px; font-family: inherit;
+      resize: none; outline: none; transition: border-color 0.2s;
+    }
+    .chat-input:focus { border-color: var(--gold); }
+    .chat-input::placeholder { color: var(--text3); }
+
+    /* ── Results ── */
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .result-section { background: var(--black3); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .result-section h4 { font-size: 11px; color: var(--gold); font-family: 'DM Mono', monospace; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 10px; }
+    .result-text { font-size: 12.5px; color: var(--text); line-height: 1.6; white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow-y: auto; }
+    .entity-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .entity-chip {
+      background: rgba(201,168,76,0.08); border: 1px solid var(--border2);
+      color: var(--cream2); font-size: 11px; padding: 3px 9px; border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+    }
+    .entity-group { margin-bottom: 10px; }
+    .entity-group-label { font-size: 9px; color: var(--cream4); letter-spacing: 1.2px; text-transform: uppercase; font-family: 'DM Mono', monospace; margin-bottom: 5px; }
+
+    /* ── Suggestions ── */
+    .suggestions { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 16px 14px; }
+    .suggestion {
+      background: rgba(201,168,76,0.06); border: 1px solid var(--border2);
+      color: var(--cream3); font-size: 11.5px; padding: 6px 12px; border-radius: 20px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .suggestion:hover { background: rgba(201,168,76,0.12); color: var(--gold2); border-color: var(--border3); }
+
+    /* ── Empty states ── */
+    .empty-state { text-align: center; padding: 48px 20px; }
+    .empty-state-icon { font-size: 40px; opacity: 0.2; margin-bottom: 14px; }
+    .empty-state-title { font-size: 15px; color: var(--cream3); font-weight: 400; margin-bottom: 6px; }
+    .empty-state-sub   { font-size: 12px; color: var(--text3); line-height: 1.5; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--black2); }
+    ::-webkit-scrollbar-thumb { background: var(--black5); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cream4); }
+
+    /* ── Tabs ── */
+    .tab-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); padding: 0 20px; background: rgba(201,168,76,0.02); align-items: center; }
+    .tab {
+      padding: 11px 16px; font-size: 12.5px; color: var(--cream3); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all 0.2s; font-family: inherit;
+      background: none; border-top: none; border-left: none; border-right: none;
+      margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--cream); }
+    .tab.active { color: var(--gold2); border-bottom-color: var(--gold); }
+
+    /* ── Connection health ── */
+    .health-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .health-row:last-child { border-bottom: none; }
+    .health-name { font-size: 13px; color: var(--cream); }
+    .health-status { font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 9px; border-radius: 6px; }
+    .health-ok   { background: rgba(74,158,107,0.12); color: var(--success); }
+    .health-fail { background: rgba(158,74,74,0.12); color: #e87a7a; }
+    .health-unk  { background: var(--black4); color: var(--cream4); }
+
+    /* ── Animations ── */
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .page { animation: fadeIn 0.3s ease; }
+    
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000;
+      display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+      opacity: 1; transition: opacity 0.2s;
+    }
+    .modal-overlay.hidden { display: none !important; opacity: 0; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .metrics { grid-template-columns: repeat(2,1fr); }
+      .result-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Step chips (setup progress) ── */
+    .step-chip {
+      font-size: 10.5px; color: var(--cream4); font-family: 'DM Mono', monospace;
+      background: var(--black4); border: 1px solid var(--border); border-radius: 20px;
+      padding: 4px 10px; transition: all 0.3s; white-space: nowrap;
+    }
+    .step-chip.done    { color: var(--success); border-color: rgba(74,158,107,0.3); background: rgba(74,158,107,0.08); }
+    .step-chip.active  { color: var(--gold); border-color: var(--border2); background: rgba(201,168,76,0.08); }
+    .step-chip.error   { color: #e87a7a; border-color: rgba(158,74,74,0.3); background: rgba(158,74,74,0.08); }
+
+    /* ── Cleanup chips ── */
+    .cleanup-chip {
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+      cursor: pointer; transition: all 0.2s; background: var(--black3);
+    }
+    .cleanup-chip:hover { border-color: var(--border2); background: rgba(201,168,76,0.03); }
+    .cleanup-chip.active-chip { border-color: var(--gold); background: rgba(201,168,76,0.06); }
+
+    /* ── Toast ── */
+    .toast-success { background: rgba(14,24,18,0.97); border-color: rgba(74,158,107,0.4) !important; color: #90d4ae; }
+    .toast-error   { background: rgba(24,14,14,0.97); border-color: rgba(158,74,74,0.4) !important; color: #e8a0a0; }
+    .toast-info    { background: rgba(20,18,9,0.97);  border-color: rgba(201,168,76,0.3) !important; color: var(--gold2); }
+
+  </style>
+</head>
+<body>
+  <div class="topline"></div>
+
+  <!-- ── Nav ── -->
+  <nav class="nav">
+    <div class="nav-logo" onclick="navigate('dashboard')">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="logo-text">Lumi</div>
+        <div class="logo-sub">Document Intelligence</div>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <button class="nav-link active" id="nav-upload" onclick="navigate('upload')">Upload</button>
+      <button class="nav-link" id="nav-dashboard"    onclick="navigate('dashboard')">Dashboard</button>
+      <button class="nav-link" id="nav-results"   onclick="navigate('results')">Results</button>
+      <button class="nav-link" id="nav-qa"        onclick="navigate('qa')">Ask Lumi</button>
+      <button class="nav-link" id="nav-settings"  onclick="navigate('settings')">Settings</button>
+    </div>
+
+    <div class="nav-right">
+      <div class="status-dot" id="status-dot" title="Connection status"></div>
+      <div class="nav-user">AI</div>
+    </div>
+  </nav>
+
+  <!-- ── Layout ── -->
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">Navigation</div>
+      <button class="sidebar-item active" id="sb-upload" onclick="navigate('upload')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Upload Document
+      </button>
+      <button class="sidebar-item" id="sb-dashboard" onclick="navigate('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="sidebar-item" id="sb-results" onclick="navigate('results')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Results
+        <span class="sidebar-badge" id="sb-results-badge" style="display:none">0</span>
+      </button>
+      <button class="sidebar-item" id="sb-qa" onclick="navigate('qa')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Ask Lumi
+      </button>
+
+      <div class="sidebar-section">System</div>
+
+
+      <button class="sidebar-item" id="sb-settings" onclick="navigate('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </button>
+    </aside>
+
+    <!-- Content -->
+    <main class="content" id="main-content">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page hidden" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Intelligence Hub</div>
+            <div class="page-sub">Your personal document assistant. Let's make sense of your files together.</div>
+          </div>
+          <button class="btn-primary" onclick="navigate('upload')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Document
+          </button>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">Documents Processed</div>
+            <div class="metric-value" id="m-total">0</div>
+            <div class="metric-sub">All time</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Current Status</div>
+            <div class="metric-value" id="m-status" style="font-size:18px;padding-top:6px;color:var(--cream3)">Idle</div>
+            <div class="metric-sub" id="m-status-sub">Ready to process</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Last Document Uploaded</div>
+            <div class="metric-value" id="m-jobid" style="font-size:15px;padding-top:9px;color:var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+            <div class="metric-sub">Most recent file</div>
+          </div>
+        </div>
+
+        <!-- Recent docs -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Recent Documents</div>
+              <div class="card-sub" id="recent-count">No documents yet</div>
+            </div>
+            <button class="btn-ghost" onclick="loadRecentJobs()">Refresh</button>
+          </div>
+          <div class="card-body" style="padding:8px">
+            <div class="doc-list" id="recent-list">
+              <div class="empty-state" data-empty>
+                <div class="empty-state-icon">📄</div>
+                <div class="empty-state-title">Looks a bit quiet here!</div>
+                <div class="empty-state-sub">Upload a PDF or image, and I'll get to work.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- ── UPLOAD ── -->
+      <div class="page" id="page-upload">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Upload Document</div>
+            <div class="page-sub">Drop your files below, and I'll pull out the important bits for you.</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- Drop zone -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Select File</div>
+              </div>
+              <div class="card-body">
+                <div class="dropzone" id="drop-zone">
+                  <div class="dropzone-icon">⬆</div>
+                  <div class="dropzone-title" id="drop-title">Drop your document here</div>
+                  <div class="dropzone-hint" id="drop-hint">or <span>click to browse</span> · PDF, JPG, PNG</div>
+                </div>
+                <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif" style="display:none" />
+                <div id="upload-alert" class="alert alert-error hidden" style="margin-top:12px"></div>
+                <div class="progress-wrap hidden" id="progress-wrap" style="margin-top:12px">
+                  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                  <div class="progress-meta">
+                    <span class="progress-label" id="progress-label">Uploading...</span>
+                    <span class="progress-pct" id="progress-pct">0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Result box -->
+            <div class="card hidden" id="job-result">
+              <div class="card-header">
+                <div class="card-title">✓ Document Submitted</div>
+              </div>
+              <div class="card-body">
+                <div style="display:flex;gap:20px;flex-wrap:wrap">
+                  <div>
+                    <div style="font-size:10.5px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">Document</div>
+                    <div style="font-family:'Inter',sans-serif;font-weight:500;font-size:15px;color:var(--gold)" id="result-job-id">—</div>
+                  </div>
+                  <div>
+                    <div style="font-size:10.5px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">Status</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--success)" id="result-status">Processing...</div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;display:flex;gap:10px">
+                  <button class="btn-outline" onclick="goToResults()">View Results</button>
+                  <button class="btn-ghost" onclick="goToQA()">Ask Lumi</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Options panel -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">Processing Options</div></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Document Type</label>
+                <select class="form-select" id="doc-type-select">
+                  <option value="other">Other / General</option>
+                  <option value="invoices">Invoice / Bill</option>
+                  <option value="contracts">Contract / Agreement</option>
+                  <option value="medical">Medical Record</option>
+                  <option value="ids">ID Document</option>
+                </select>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="toggle-row" style="border-top:none">
+                <div class="toggle-info">
+                  <h4>Smart Analysis</h4>
+                  <p>Generate summaries &amp; extract entities</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="toggle-ai" checked /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <h4>Interactive Q&amp;A</h4>
+                  <p>Chat with your document after upload</p>
+                </div>
+                <label class="toggle"><input type="checkbox" id="toggle-rag" checked /><span class="toggle-slider"></span></label>
+              </div>
+
+              <div style="margin-top:16px">
+                <button class="btn-primary" id="upload-btn" disabled onclick="doUpload()" style="width:100%;justify-content:center">
+                  Select a file first
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RESULTS ── -->
+      <div class="page hidden" id="page-results">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Extraction Results</div>
+            <div class="page-sub">Here is exactly what I found inside your document.</div>
+          </div>
+        </div>
+
+        <!-- View 1: Document Selector Grid -->
+        <div id="res-selector-state">
+           <div class="doc-card-grid" id="res-card-grid">
+              <!-- Rendered via JS -->
+           </div>
+           <div id="res-empty-state" class="empty-state hidden" style="padding:48px 20px">
+             <div class="empty-state-icon">🔍</div>
+             <div class="empty-state-title">Nothing to see just yet</div>
+             <div class="empty-state-sub">Upload a document first, and I'll show you what's inside.</div>
+           </div>
+        </div>
+
+        <div id="res-error-state" class="hidden">
+          <div class="alert alert-error" id="res-error-msg"></div>
+          <button class="btn-ghost" style="margin-top: 10px;" onclick="backToResultsSelector()">← Go Back</button>
+        </div>
+
+        <!-- View 2: Actual Results -->
+        <div id="res-results-state" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+          <div>
+             <button class="btn-ghost" onclick="backToResultsSelector()">← Back to Documents</button>
+          </div>
+          <!-- Summary bar -->
+          <div class="card">
+            <div class="card-body" style="display:flex;gap:28px;flex-wrap:wrap;align-items:center">
+              <div>
+                <div style="font-size:10px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px">File</div>
+                <div style="color:var(--cream);font-size:13px" id="res-filename">—</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px">Category</div>
+                <div style="color:var(--gold2);font-size:13px;" id="res-category">—</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px">Pages</div>
+                <div style="color:var(--cream);font-size:13px" id="res-pages">—</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px">Lines</div>
+                <div style="color:var(--cream);font-size:13px" id="res-lines">—</div>
+              </div>
+              <div style="margin-left:auto">
+                <span class="status-pill" id="res-status">—</span>
+              </div>
+              <button class="btn-primary" onclick="useJobForQA()" style="padding: 6px 14px; font-size: 11px;">Ask Lumi →</button>
+              <span id="res-jobid-hidden" style="display:none;"></span>
+            </div>
+          </div>
+
+          <div class="result-grid" id="res-grid"></div>
+        </div>
+      </div>
+
+      <!-- ── ASK LUMI (Q&A) ── -->
+      <div class="page hidden" id="page-qa">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Ask Lumi</div>
+            <div class="page-sub">Got questions? Just ask! I've read your file and I'm ready to help.</div>
+          </div>
+        </div>
+
+        <!-- View 1: Document Selector Grid -->
+        <div id="qa-selector-state">
+           <div class="doc-card-grid" id="qa-card-grid">
+              <!-- Rendered via JS -->
+           </div>
+           <div id="qa-empty-state" class="empty-state hidden" style="padding:48px 20px">
+             <div class="empty-state-icon">💬</div>
+             <div class="empty-state-title">Whoops, no documents to chat with</div>
+             <div class="empty-state-sub">Upload a document first, and we can start chatting about it.</div>
+           </div>
+        </div>
+
+        <div id="qa-load-error" class="alert alert-error hidden" style="margin-bottom:12px;"></div>
+
+        <!-- View 2: Chat Interface -->
+        <div id="qa-chat-state" class="hidden" style="display:flex;flex-direction:column;gap:16px;">
+          <div>
+             <button class="btn-ghost" onclick="backToQASelector()">← Back to Documents</button>
+          </div>
+          <!-- Chat -->
+          <div class="card" style="display:flex;flex-direction:column;min-height:540px; width:100%; max-width:860px; margin: 0 auto;">
+            <div class="tab-bar">
+              <div style="font-size:12.5px;color:var(--cream);padding:11px 0;font-weight:500;" id="qa-doc-label">No document loaded</div>
+              <button class="btn-ghost" style="margin-left:auto;margin-top:5px;height:30px;font-size:11px" onclick="saveChatHistory()">Save Chat</button>
+              <button class="btn-ghost" style="margin-left:8px;margin-top:5px;height:30px;font-size:11px" onclick="clearChat()">Clear Chat</button>
+            </div>
+            <div class="chat-area" id="chat-messages">
+              <div class="empty-state" id="empty-chat">
+                <div class="empty-state-icon">💬</div>
+                <div class="empty-state-title">Loading document...</div>
+              </div>
+            </div>
+            <div id="suggestions" class="suggestions hidden">
+              <div class="suggestion" onclick="sendSuggestion(this)">What type of document is this?</div>
+              <div class="suggestion" onclick="sendSuggestion(this)">Summarize the key points</div>
+              <div class="suggestion" onclick="sendSuggestion(this)">List all dates mentioned</div>
+              <div class="suggestion" onclick="sendSuggestion(this)">What are the monetary values?</div>
+            </div>
+            <div class="chat-input-row">
+              <textarea class="chat-input" id="qa-input" rows="2" placeholder="Ask a question about your document..." disabled></textarea>
+              <button class="btn-primary" id="qa-send" onclick="sendQuestion()" disabled style="align-self:flex-end">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS ── -->
+      <div class="page hidden" id="page-settings">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Settings</div>
+            <div class="page-sub">Manage your workspace, check connections, and keep things running smoothly.</div>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:12px;margin:4px 0">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div style="font-size:10px;color:var(--cream4);font-family:'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase">System Actions</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <!-- AWS Setup -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">System Setup</div>
+              <div class="card-sub">Let's get everything prepped and ready for your first run.</div>
+            </div>
+            <button class="btn-primary" id="setup-btn" onclick="startSetup()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run Setup
+            </button>
+          </div>
+          <div class="card-body" style="padding:12px 20px">
+            <!-- Step progress strip -->
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" id="setup-steps">
+              <div class="step-chip" id="sc-1">1. Verify connections</div>
+              <div style="color:var(--cream4);font-size:10px">›</div>
+              <div class="step-chip" id="sc-2">2. Cloud Storage</div>
+              <div style="color:var(--cream4);font-size:10px">›</div>
+              <div class="step-chip" id="sc-3">3. Database</div>
+              <div style="color:var(--cream4);font-size:10px">›</div>
+              <div class="step-chip" id="sc-4">4. Verify upload</div>
+              <div style="color:var(--cream4);font-size:10px">›</div>
+              <div class="step-chip" id="sc-5">5. Storage Test</div>
+              <div style="color:var(--cream4);font-size:10px">›</div>
+              <div class="step-chip" id="sc-6">6. Process test</div>
+            </div>
+            <div id="setup-status-msg" class="hidden" style="margin-top:12px;font-size:12.5px;color:var(--text2)"></div>
+          </div>
+        </div>
+
+        <!-- Cleanup -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Cleanup</div>
+              <div class="card-sub">Keep things tidy, clear out old files, or start completely fresh.</div>
+            </div>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+            <!-- Mode selector -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <div class="cleanup-chip active-chip" id="chip-soft" onclick="selectCleanupMode('soft')">
+                <div style="font-size:12px;font-weight:600;color:var(--gold2);margin-bottom:3px">Soft Reset</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">Empties storage &amp; records, deletes local files. Keeps infrastructure.</div>
+              </div>
+              <div class="cleanup-chip" id="chip-hard" onclick="selectCleanupMode('hard')">
+                <div style="font-size:12px;font-weight:600;color:#e87a7a;margin-bottom:3px">Hard Reset</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">Deletes storage buckets, database &amp; all local files permanently.</div>
+              </div>
+              <div class="cleanup-chip" id="chip-local" onclick="selectCleanupMode('local')">
+                <div style="font-size:12px;font-weight:600;color:var(--cream2);margin-bottom:3px">Local Only</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">Deletes local output files only. No external calls made.</div>
+              </div>
+            </div>
+
+            <!-- Hard reset warning -->
+            <div id="hard-confirm-wrap" class="hidden" style="background:rgba(158,74,74,0.08);border:1px solid rgba(158,74,74,0.25);border-radius:8px;padding:12px 16px">
+              <div style="font-size:12px;color:#e8a0a0;font-weight:500;margin-bottom:8px">This permanently deletes your storage buckets and tables. You will need to run Setup again.</div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--cream2)">
+                <input type="checkbox" id="hard-confirm-check" style="width:14px;height:14px;accent-color:var(--gold)" />
+                I understand this cannot be undone
+              </label>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="btn-outline" id="cleanup-btn" onclick="startCleanup()" style="border-color:rgba(158,74,74,0.4);color:#e87a7a">
+                Run Soft Reset
+              </button>
+              <div id="cleanup-status-msg" class="hidden" style="font-size:12px;color:var(--text2)"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Service Health -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Service Health</div>
+            <button class="btn-ghost" onclick="checkHealth()">Check Now</button>
+          </div>
+          <div class="card-body" style="padding:8px 20px">
+            <div class="health-row"><span class="health-name">Cloud Storage</span><span class="health-status health-unk" id="h-s3">Not checked</span></div>
+            <div class="health-row"><span class="health-name">Database</span><span class="health-status health-unk" id="h-dynamo">Not checked</span></div>
+            <div class="health-row"><span class="health-name">Intelligence Engine</span><span class="health-status health-unk" id="h-bedrock">Not checked</span></div>
+            <div class="health-row"><span class="health-name">Extraction Engine</span><span class="health-status health-ok" id="h-textract">Verified on upload</span></div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal-overlay hidden">
+    <div class="card" style="width:100%; max-width:320px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <div class="card-body" style="text-align:center;">
+        <div style="width:48px; height:48px; border-radius:50%; background:rgba(158,74,74,0.1); color:var(--danger); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+        </div>
+        <h3 style="font-size:16px; color:var(--cream); margin-bottom:8px; font-weight:500;">Delete Document?</h3>
+        <p style="font-size:13px; color:var(--text2); margin-bottom:24px; line-height:1.5;">This action cannot be undone. Are you sure you want to permanently delete this file?</p>
+        <div style="display:flex; gap:12px;">
+          <button class="btn-ghost" style="flex:1; justify-content:center;" onclick="closeDeleteModal()">Cancel</button>
+          <button class="btn-primary" style="flex:1; justify-content:center; background:linear-gradient(135deg, #e86a6a 0%, #9e4a4a 100%); color:#fff; box-shadow:none; border:none;" onclick="confirmDeleteJob()">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global toast notification -->
+  <div id="toast" style="position:fixed;bottom:28px;right:28px;z-index:9999;display:none;min-width:260px;max-width:400px;padding:14px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.5);backdrop-filter:blur(12px);border:1px solid;transition:all 0.3s;align-items:center;gap:10px"></div>
+
+  <script>
+    const API = '';  // Same origin — Flask serves both frontend and API
+
+    // ── Global Chat Histories ──────────────────────────────────────────────────
+    let chatHistories = {}; // Object to preserve chat arrays while app is open
+    let jobToDelete = null; // Store job ID for deletion
+    let deletedJobs = new Set(); // Track deleted jobs for instant UI updates
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    const PAGES = ['upload','dashboard','results','qa','settings'];
+    let currentPage = 'upload';
+
+    function navigate(page) {
+      PAGES.forEach(p => {
+        document.getElementById('page-' + p).classList.toggle('hidden', p !== page);
+        document.getElementById('nav-' + p)?.classList.toggle('active', p === page);
+        document.getElementById('sb-' + p)?.classList.toggle('active', p === page);
+      });
+      currentPage = page;
+      if (page === 'dashboard') loadRecentJobs();
+      if (page === 'settings')  loadConfig();
+      if (page === 'results')   loadResultsGrid();
+      
+      if (page === 'qa') {
+        // If we are currently chatting, do not reset the interface
+        if (currentJobId && !document.getElementById('qa-chat-state').classList.contains('hidden')) {
+           // Do nothing, remain in active chat view
+        } else {
+           loadQAGrid();
+        }
+      }
+    }
+
+    // ── Health check ──────────────────────────────────────────────────────────
+    async function checkHealth() {
+      try {
+        const r = await fetch(API + '/api/health');
+        const d = await r.json();
+
+        const dot = document.getElementById('status-dot');
+
+        const setH = (id, val) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const ok = val === 'connected' || val === 'client_ready' || val === 'Verified on upload';
+          el.className = 'health-status ' + (ok ? 'health-ok' : val.startsWith('error') ? 'health-fail' : 'health-unk');
+          el.textContent = ok ? '✓ OK' : val;
+        };
+
+        setH('h-s3',      d.services?.s3 || '—');
+        setH('h-dynamo',  d.services?.dynamodb || '—');
+        setH('h-bedrock', d.services?.bedrock || '—');
+
+        const allOk = d.services?.s3 === 'connected' && d.services?.dynamodb === 'connected';
+        dot.className = 'status-dot ' + (allOk ? 'connected' : 'error');
+
+      } catch (e) {
+        document.getElementById('status-dot').className = 'status-dot error';
+      }
+    }
+
+    // ── Document Deletion ─────────────────────────────────────────────────────
+    function openDeleteModal(event, jobId) {
+      event.stopPropagation(); // Prevent opening the document
+      jobToDelete = jobId;
+      document.getElementById('delete-modal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+      jobToDelete = null;
+      document.getElementById('delete-modal').classList.add('hidden');
+    }
+
+    async function confirmDeleteJob() {
+      if (!jobToDelete) return;
+      const jobId = jobToDelete;
+      closeDeleteModal();
+      
+      // Optimistically hide from UI instantly
+      deletedJobs.add(jobId);
+      
+      try {
+        const r = await fetch(API + '/api/jobs/' + jobId, { method: 'DELETE' });
+        
+        // Either it deleted successfully, or wasn't found (already deleted)
+        if (r.ok || r.status === 404) {
+           showToast('Document deleted successfully', 'success');
+        } else {
+           const d = await r.json();
+           showToast(d.error || 'Failed to delete document', 'error');
+           // If error, we keep trying to update the UI below anyway
+        }
+        
+        // Clean up UI if currently interacting with this document
+        if (currentJobId === jobId) {
+           clearChat();
+           currentJobId = null;
+           document.getElementById('qa-doc-label').textContent = "No document loaded";
+           document.getElementById('qa-chat-state').classList.add('hidden');
+           document.getElementById('qa-selector-state').classList.remove('hidden');
+        }
+        if (document.getElementById('res-jobid-hidden').textContent === jobId) {
+           backToResultsSelector();
+        }
+        
+        // Remove from local memory
+        delete chatHistories[jobId];
+
+        // Refresh lists immediately
+        if (currentPage === 'dashboard') loadRecentJobs();
+        if (currentPage === 'results') loadResultsGrid();
+        if (currentPage === 'qa') loadQAGrid();
+        
+      } catch (e) {
+        showToast('Network error: ' + e.message, 'error');
+      }
+    }
+
+    // ── Load recent jobs ──────────────────────────────────────────────────────
+    async function fetchJobsList() {
+      try {
+        const r = await fetch(API + '/api/jobs');
+        const d = await r.json();
+        const jobs = d.jobs || [];
+        // Filter out any files that we've recently deleted locally
+        return jobs.filter(j => !deletedJobs.has(j.job_id));
+      } catch (e) {
+        console.warn('Could not load jobs:', e);
+        return [];
+      }
+    }
+
+    function formatFriendlyStatus(status) {
+      return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    async function loadRecentJobs() {
+      const jobs = await fetchJobsList();
+      const list  = document.getElementById('recent-list');
+      const badge = document.getElementById('sb-results-badge');
+
+      list.innerHTML = '';
+      if (jobs.length === 0) {
+        list.innerHTML = '<div class="empty-state" data-empty><div class="empty-state-icon">📄</div><div class="empty-state-title">Looks a bit quiet here!</div><div class="empty-state-sub">Upload a PDF or image, and I\'ll get to work.</div></div>';
+        badge.style.display = 'none';
+        document.getElementById('recent-count').textContent = 'No documents yet';
+        document.getElementById('m-total').textContent = '0';
+        
+        // Ensure Dashboard metrics are completely cleared when empty
+        document.getElementById('m-status').textContent = 'Idle';
+        document.getElementById('m-status-sub').textContent = 'Ready to process';
+        document.getElementById('m-jobid').textContent = '—';
+      } else {
+        badge.style.display = '';
+        badge.textContent = jobs.length;
+        document.getElementById('recent-count').textContent = jobs.length + ' document' + (jobs.length !== 1 ? 's' : '');
+        document.getElementById('m-total').textContent = jobs.length;
+
+        jobs.slice(0, 12).forEach(j => {
+          const ext = (j.filename || 'DOC').split('.').pop().toUpperCase();
+          const statusClass = j.status === 'ai_done' || j.status === 'textract_done' ? 'status-done' :
+                              j.status === 'failed' ? 'status-failed' :
+                              j.status === 'uploaded' ? 'status-upload' : 'status-proc';
+          const item = document.createElement('div');
+          item.className = 'doc-item';
+          item.onclick = () => {
+             navigate('results');
+             openJobResults(j.job_id);
+          };
+          item.innerHTML = `
+            <div class="doc-icon ${ext === 'PDF' ? 'pdf' : 'img'}">${ext}</div>
+            <div style="flex:1;min-width:0">
+              <div class="doc-name">${j.filename || 'Unknown'}</div>
+              <div class="doc-meta">${j.doc_type || '—'}</div>
+            </div>
+            <span class="status-pill ${statusClass}">${formatFriendlyStatus(j.status)}</span>
+            <button class="btn-delete" title="Delete document" onclick="openDeleteModal(event, '${j.job_id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+            </button>
+          `;
+          list.appendChild(item);
+        });
+
+        const lastJob = jobs[0];
+        if (lastJob) {
+          document.getElementById('m-jobid').textContent = lastJob.filename || 'Unknown';
+          document.getElementById('m-status').textContent = formatFriendlyStatus(lastJob.status);
+          document.getElementById('m-status-sub').textContent = 'Latest activity';
+        }
+      }
+    }
+
+    // ── Upload ────────────────────────────────────────────────────────────────
+    let selectedFile = null;
+
+    const dropZone  = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    function resetUploadState() {
+      selectedFile = null;
+      fileInput.value = '';
+      document.getElementById('drop-title').textContent = 'Drop your document here';
+      document.getElementById('drop-hint').innerHTML = 'or <span>click to browse</span> · PDF, JPG, PNG';
+      document.getElementById('job-result').classList.add('hidden');
+      document.getElementById('progress-wrap').classList.add('hidden');
+      uploadBtn.textContent = 'Select a file first';
+      uploadBtn.disabled = true;
+      uploadBtn.onclick = doUpload;
+      dropZone.classList.remove('drag-over');
+    }
+
+    function setFile(file) {
+      if (!file) return;
+      selectedFile = file;
+      document.getElementById('drop-title').textContent = file.name;
+      document.getElementById('drop-hint').textContent  = (file.size / 1024 / 1024).toFixed(2) + ' MB · Ready to upload';
+      
+      // Clean up UI from any previous uploads
+      document.getElementById('job-result').classList.add('hidden');
+      document.getElementById('progress-wrap').classList.add('hidden');
+      uploadBtn.textContent = 'Upload & Process';
+      uploadBtn.onclick = doUpload;
+      uploadBtn.disabled = false;
+    }
+
+    dropZone.addEventListener('click',  () => fileInput.click());
+    fileInput.addEventListener('change', e => setFile(e.target.files[0]));
+    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop',      e => { e.preventDefault(); dropZone.classList.remove('drag-over'); setFile(e.dataTransfer.files[0]); });
+
+    function showUploadAlert(msg, type = 'error') {
+      const el = document.getElementById('upload-alert');
+      el.className = 'alert alert-' + type;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function setProgress(pct, label) {
+      document.getElementById('progress-fill').style.width  = pct + '%';
+      document.getElementById('progress-pct').textContent   = pct + '%';
+      document.getElementById('progress-label').textContent = label;
+      document.getElementById('progress-wrap').classList.remove('hidden');
+    }
+
+    async function doUpload() {
+      if (!selectedFile) return;
+      uploadBtn.disabled    = true;
+      uploadBtn.textContent = 'Uploading...';
+      document.getElementById('upload-alert').classList.add('hidden');
+      document.getElementById('job-result').classList.add('hidden');
+
+      const docType = document.getElementById('doc-type-select').value;
+      const runAI   = document.getElementById('toggle-ai').checked;
+      const runRAG  = document.getElementById('toggle-rag').checked;
+
+      const formData = new FormData();
+      formData.append('file',     selectedFile);
+      formData.append('doc_type', docType);
+      formData.append('run_ai',   runAI);
+      formData.append('run_rag',  runRAG);
+
+      setProgress(10, 'Uploading file...');
+
+      try {
+        const r = await fetch(API + '/api/upload', { method: 'POST', body: formData });
+        const d = await r.json();
+
+        if (!r.ok) {
+          showUploadAlert(d.error || 'Upload failed');
+          uploadBtn.disabled    = false;
+          uploadBtn.textContent = 'Try Again';
+          return;
+        }
+
+        const jobId = d.job_id;
+        setProgress(30, 'File received · Processing started...');
+        document.getElementById('result-job-id').textContent = selectedFile.name;
+        // Keep hidden job id for transition
+        document.getElementById('result-job-id').dataset.jobId = jobId; 
+        document.getElementById('result-status').textContent = 'Processing...';
+        document.getElementById('job-result').classList.remove('hidden');
+        document.getElementById('m-jobid').textContent   = selectedFile.name;
+        document.getElementById('m-status').textContent  = 'Processing';
+        document.getElementById('m-status-sub').textContent = 'Latest activity';
+
+        // Poll for status
+        let polls = 0;
+        const poll = setInterval(async () => {
+          polls++;
+          try {
+            const sr = await fetch(API + '/api/status/' + jobId);
+            const sd = await sr.json();
+            const status = sd.status;
+
+            if (status === 'textract_done') {
+              setProgress(75, 'Extraction complete · Running AI analysis...');
+            } else if (status === 'ai_done') {
+              setProgress(100, 'Complete!');
+              clearInterval(poll);
+              document.getElementById('result-status').textContent = '✓ Done';
+              document.getElementById('m-status').textContent = 'Done';
+              
+              // Enable uploading another completely fresh file
+              uploadBtn.disabled    = false;
+              uploadBtn.textContent = 'Upload Another Document';
+              uploadBtn.onclick = resetUploadState;
+            } else if (status === 'failed') {
+              clearInterval(poll);
+              setProgress(100, 'Failed');
+              showUploadAlert('Processing failed. Check system setup.');
+              uploadBtn.disabled    = false;
+              uploadBtn.textContent = 'Try Again';
+            } else if (polls > 60) {
+              clearInterval(poll);
+              setProgress(85, 'Taking longer than expected...');
+              uploadBtn.disabled    = false;
+              uploadBtn.textContent = 'Upload Another';
+            }
+          } catch {}
+        }, 3000);
+
+      } catch (e) {
+        showUploadAlert('Network error: ' + e.message);
+        uploadBtn.disabled    = false;
+        uploadBtn.textContent = 'Try Again';
+      }
+    }
+
+    function goToResults() {
+      const jobId = document.getElementById('result-job-id').dataset.jobId;
+      navigate('results');
+      if (jobId) openJobResults(jobId);
+    }
+    function goToQA() {
+      const jobId = document.getElementById('result-job-id').dataset.jobId;
+      navigate('qa');
+      if (jobId) openQA(jobId);
+    }
+
+    // ── Generic Card Renderer ──────────────────────────────────────────────────
+    function renderDocCards(jobs, containerId, onClickFnName) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      if (!jobs || jobs.length === 0) return 0;
+
+      jobs.forEach(job => {
+        const ext = (job.filename || 'DOC').split('.').pop().toUpperCase();
+        const statusClass = job.status === 'ai_done' || job.status === 'textract_done' ? 'status-done' :
+                            job.status === 'failed' ? 'status-failed' :
+                            job.status === 'uploaded' ? 'status-upload' : 'status-proc';
+                            
+        const friendlyStatus = formatFriendlyStatus(job.status);
+        
+        container.innerHTML += `
+          <div class="doc-card" onclick="${onClickFnName}('${job.job_id}')">
+            <div class="doc-card-header">
+               <div class="doc-icon ${ext === 'PDF' ? 'pdf' : 'img'}">${ext}</div>
+               <div style="display:flex; gap:8px; align-items:center;">
+                 <span class="status-pill ${statusClass}">${friendlyStatus}</span>
+                 <button class="btn-delete" title="Delete document" onclick="openDeleteModal(event, '${job.job_id}')" style="padding:4px; margin:0;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                 </button>
+               </div>
+            </div>
+            <div class="doc-name" style="font-size: 14px; margin-bottom: 4px;">${job.filename || 'Unknown Document'}</div>
+            <div class="doc-meta" style="font-family: inherit;">${job.doc_type || 'General'}</div>
+          </div>
+        `;
+      });
+      return jobs.length;
+    }
+
+    // ── Results Page ──────────────────────────────────────────────────────────
+    async function loadResultsGrid() {
+      document.getElementById('res-selector-state').classList.remove('hidden');
+      document.getElementById('res-results-state').classList.add('hidden');
+      document.getElementById('res-error-state').classList.add('hidden');
+      
+      const jobs = await fetchJobsList();
+      const count = renderDocCards(jobs, 'res-card-grid', 'openJobResults');
+      
+      if (count === 0) {
+        document.getElementById('res-empty-state').classList.remove('hidden');
+      } else {
+        document.getElementById('res-empty-state').classList.add('hidden');
+      }
+    }
+
+    function backToResultsSelector() {
+      document.getElementById('res-results-state').classList.add('hidden');
+      document.getElementById('res-error-state').classList.add('hidden');
+      document.getElementById('res-selector-state').classList.remove('hidden');
+    }
+
+    async function openJobResults(jobId) {
+      if (!jobId) return;
+
+      document.getElementById('res-selector-state').classList.add('hidden');
+      document.getElementById('res-error-state').classList.add('hidden');
+      
+      try {
+        const r = await fetch(API + '/api/results/' + jobId);
+        const d = await r.json();
+
+        if (!r.ok) {
+          document.getElementById('res-error-msg').textContent = d.error || 'Document not found';
+          document.getElementById('res-error-state').classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('res-jobid-hidden').textContent = d.job_id;
+        document.getElementById('res-filename').textContent = d.filename || '—';
+        document.getElementById('res-category').textContent = d.category || '—';
+        document.getElementById('res-pages').textContent    = d.page_count || '—';
+        document.getElementById('res-lines').textContent    = d.line_count || '—';
+
+        const statusEl = document.getElementById('res-status');
+        const sc = d.status === 'ai_done' ? 'status-done' : d.status === 'textract_done' ? 'status-done' : d.status === 'failed' ? 'status-failed' : 'status-proc';
+        statusEl.className = 'status-pill ' + sc;
+        statusEl.textContent = formatFriendlyStatus(d.status);
+
+        const grid = document.getElementById('res-grid');
+        grid.innerHTML = '';
+
+        // Extracted text
+        if (d.extracted_text) {
+          grid.innerHTML += `
+            <div class="result-section" style="grid-column:1/-1">
+              <h4>Extracted Text</h4>
+              <div class="result-text">${escHtml(d.extracted_text)}</div>
+            </div>`;
+        }
+
+        // Summary
+        if (d.summary) {
+          grid.innerHTML += `
+            <div class="result-section">
+              <h4>AI Summary</h4>
+              <div class="result-text">${escHtml(d.summary)}</div>
+            </div>`;
+        }
+
+        // Entities
+        if (d.entities) {
+          let entHtml = '';
+          const groups = { names:'People', dates:'Dates', amounts:'Amounts', organisations:'Organisations', ids:'IDs' };
+          for (const [key, label] of Object.entries(groups)) {
+            const vals = d.entities[key];
+            if (vals && vals.length) {
+              entHtml += `<div class="entity-group"><div class="entity-group-label">${label}</div><div class="entity-chips">${vals.map(v => `<span class="entity-chip">${escHtml(v)}</span>`).join('')}</div></div>`;
+            }
+          }
+          if (entHtml) {
+            grid.innerHTML += `<div class="result-section"><h4>Entities Extracted</h4>${entHtml}</div>`;
+          }
+        }
+
+        document.getElementById('res-results-state').style.display = 'flex';
+        document.getElementById('res-results-state').classList.remove('hidden');
+      } catch (e) {
+        document.getElementById('res-error-msg').textContent = 'Error loading results: ' + e.message;
+        document.getElementById('res-error-state').classList.remove('hidden');
+      }
+    }
+
+    function useJobForQA() {
+      const jobId = document.getElementById('res-jobid-hidden').textContent;
+      navigate('qa');
+      if (jobId) openQA(jobId);
+    }
+
+    // ── Q&A (Ask Lumi) ────────────────────────────────────────────────────────
+    let currentJobId = null;
+
+    async function loadQAGrid() {
+      document.getElementById('qa-selector-state').classList.remove('hidden');
+      document.getElementById('qa-chat-state').classList.add('hidden');
+      document.getElementById('qa-load-error').classList.add('hidden');
+      
+      const jobs = await fetchJobsList();
+      const count = renderDocCards(jobs, 'qa-card-grid', 'openQA');
+      
+      if (count === 0) {
+        document.getElementById('qa-empty-state').classList.remove('hidden');
+      } else {
+        document.getElementById('qa-empty-state').classList.add('hidden');
+      }
+    }
+
+    function backToQASelector() {
+      document.getElementById('qa-chat-state').classList.add('hidden');
+      document.getElementById('qa-selector-state').classList.remove('hidden');
+      currentJobId = null;
+    }
+
+    async function openQA(jobId) {
+      if (!jobId) return;
+      document.getElementById('qa-selector-state').classList.add('hidden');
+      document.getElementById('qa-load-error').classList.add('hidden');
+      
+      const msgs = document.getElementById('chat-messages');
+      document.getElementById('qa-chat-state').style.display = 'flex';
+      document.getElementById('qa-chat-state').classList.remove('hidden');
+
+      try {
+        const r = await fetch(API + '/api/status/' + jobId);
+        const d = await r.json();
+
+        if (!r.ok) {
+          showQAError(d.error || 'Document not found');
+          backToQASelector();
+          return;
+        }
+
+        currentJobId = jobId;
+        document.getElementById('qa-doc-label').textContent = "Chatting with: " + (d.filename || 'Document');
+        document.getElementById('qa-input').disabled  = false;
+        document.getElementById('qa-send').disabled   = false;
+        document.getElementById('suggestions').classList.remove('hidden');
+
+        // Check if there is an existing chat history in memory for this job
+        if (chatHistories[jobId] && chatHistories[jobId].length > 0) {
+            msgs.innerHTML = '';
+            chatHistories[jobId].forEach(msg => {
+                // Pass false to avoid saving it back during restoration
+                addMessage(msg.role, msg.text, false);
+            });
+        } else {
+            // Fresh chat initialization
+            msgs.innerHTML = '';
+            addMessage('ai', `Hi! I'm Lumi. I've loaded "${d.filename || 'your document'}". What would you like to know about it?`, true);
+
+            if (d.rag_indexed !== 'true' && d.status !== 'ai_done') {
+              addMessage('ai', '⚠️ Note: This document may not be fully indexed for interactive Q&A. I will try my best based on general summaries.', true);
+            }
+        }
+      } catch (e) {
+        showQAError('Network error: ' + e.message);
+        backToQASelector();
+      }
+    }
+
+    function showQAError(msg) {
+      const el = document.getElementById('qa-load-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // Role should be 'user' or 'ai'. Save parameter controls pushing to the history array
+    function addMessage(role, text, saveToHistory = true) {
+      const msgs = document.getElementById('chat-messages');
+      const empty = document.getElementById('empty-chat');
+      if (empty) empty.remove();
+      
+      const div = document.createElement('div');
+      div.className = 'qa-msg qa-' + role;
+      div.textContent = text;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+
+      if (saveToHistory && currentJobId) {
+        if (!chatHistories[currentJobId]) chatHistories[currentJobId] = [];
+        chatHistories[currentJobId].push({ role, text });
+      }
+
+      return div;
+    }
+
+    function addThinking() {
+      const msgs = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'qa-msg qa-ai qa-thinking';
+      div.innerHTML = '<span></span><span></span><span></span>';
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return div;
+    }
+
+    async function sendQuestion() {
+      const input    = document.getElementById('qa-input');
+      const question = input.value.trim();
+      if (!question || !currentJobId) return;
+      input.value = '';
+      document.getElementById('suggestions').classList.add('hidden');
+      document.getElementById('qa-send').disabled = true;
+      input.disabled = true;
+      
+      addMessage('user', question, true);
+      const thinking = addThinking();
+
+      try {
+        const r = await fetch(API + '/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_id: currentJobId, question }),
+        });
+        const d = await r.json();
+        thinking.remove();
+
+        if (!r.ok) {
+          addMessage('ai', '⚠️ ' + (d.error || 'Query failed'), true);
+        } else {
+          addMessage('ai', d.answer || 'No answer returned.', true);
+        }
+      } catch (e) {
+        thinking.remove();
+        addMessage('ai', '⚠️ Network error: ' + e.message, true);
+      }
+
+      document.getElementById('qa-send').disabled = false;
+      input.disabled = false;
+      input.focus();
+    }
+
+    function sendSuggestion(el) {
+      document.getElementById('qa-input').value = el.textContent;
+      sendQuestion();
+    }
+
+    function clearChat() {
+      const msgs = document.getElementById('chat-messages');
+      msgs.innerHTML = '<div class="empty-state" id="empty-chat"><div class="empty-state-icon">💬</div><div class="empty-state-title">Chat cleared</div><div class="empty-state-sub">Ask another question below</div></div>';
+      if (currentJobId) {
+          chatHistories[currentJobId] = []; // Clear memory history
+          document.getElementById('suggestions').classList.remove('hidden');
+      }
+    }
+    
+    function saveChatHistory() {
+        if (!currentJobId || !chatHistories[currentJobId] || chatHistories[currentJobId].length === 0) {
+            showToast("There is no chat history to save yet.", "info");
+            return;
+        }
+        
+        let fileContent = "--- Lumi Document Intelligence ---\n";
+        fileContent += "Chat History for: " + document.getElementById('qa-doc-label').textContent.replace('Chatting with: ', '') + "\n\n";
+        
+        chatHistories[currentJobId].forEach(msg => {
+            const roleName = msg.role === 'ai' ? 'Lumi' : 'You';
+            fileContent += `${roleName}:\n${msg.text}\n\n`;
+        });
+        
+        const blob = new Blob([fileContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Lumi_Chat_${currentJobId}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showToast("Chat history saved to your downloads.", "success");
+    }
+
+    document.getElementById('qa-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); }
+    });
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+    function escHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ── Toast notification ──────────────────────────────────────────────────────
+    function showToast(msg, type = 'info', duration = 4000) {
+      const t = document.getElementById('toast');
+      t.className = 'toast-' + type;
+      t.style.cssText = `position:fixed;bottom:28px;right:28px;z-index:9999;min-width:260px;max-width:420px;padding:14px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.6);backdrop-filter:blur(12px);border:1px solid;display:flex;align-items:center;gap:10px;`;
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'i';
+      const iconColor = type === 'success' ? '#4a9e6b' : type === 'error' ? '#9e4a4a' : 'var(--gold)';
+      t.innerHTML = `<span style="width:20px;height:20px;border-radius:50%;background:${iconColor};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">${icon}</span><span>${escHtml(msg)}</span>`;
+      t.style.display = 'flex';
+      if (t._timer) clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = 'none'; }, duration);
+    }
+
+    // ── Setup ─────────────────────────────────────────────────────────────────
+    let setupPolling  = null;
+    let lastLogLen    = 0;
+
+    const STEP_KEYWORDS = [
+      [1, ['Step 1', 'Verifying', 'Connected', 'connection']],
+      [2, ['Step 2', 'S3 Bucket', 'Bucket', 'bucket']],
+      [3, ['Step 3', 'DynamoDB', 'Table']],
+      [4, ['Step 4', 'Test Document', 'sample_invoice', 'Generating', 'Created']],
+      [5, ['Step 5', 'Upload', 'Uploading', 'DynamoDB record']],
+      [6, ['Step 6', 'Smoke Test', 'Textract extracted', 'extracted']],
+    ];
+
+    function resetStepChips() {
+      for (let i = 1; i <= 6; i++) {
+        const el = document.getElementById('sc-' + i);
+        if (el) { el.className = 'step-chip'; }
+      }
+    }
+
+    function markStep(n, state) {
+      const el = document.getElementById('sc-' + n);
+      if (el) el.className = 'step-chip ' + state;
+    }
+
+    function updateStepsFromLog(logs) {
+      logs.forEach(entry => {
+        const msg = entry.msg || '';
+        for (const [step, keywords] of STEP_KEYWORDS) {
+          if (keywords.some(k => msg.includes(k))) {
+            const state = entry.type === 'error' ? 'error' :
+                          entry.type === 'success' ? 'done' : 'active';
+            markStep(step, state);
+          }
+        }
+      });
+    }
+
+    async function startSetup() {
+      const btn = document.getElementById('setup-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      resetStepChips();
+      markStep(1, 'active');
+      lastLogLen = 0;
+
+      const statusMsg = document.getElementById('setup-status-msg');
+      statusMsg.textContent = 'Setup running — this takes about 30–60 seconds...';
+      statusMsg.className = '';
+      statusMsg.style.color = 'var(--text2)';
+      statusMsg.classList.remove('hidden');
+
+      try {
+        const r = await fetch(API + '/api/setup/start', { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) {
+          showToast(d.error || 'Failed to start setup', 'error');
+          btn.disabled = false;
+          btn.textContent = 'Run Setup';
+          statusMsg.classList.add('hidden');
+          return;
+        }
+      } catch (e) {
+        showToast('Network error: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Run Setup';
+        statusMsg.classList.add('hidden');
+        return;
+      }
+
+      setupPolling = setInterval(pollSetup, 1000);
+    }
+
+    async function pollSetup() {
+      try {
+        const r = await fetch(API + '/api/setup/status');
+        const d = await r.json();
+
+        const newLogs = d.logs.slice(lastLogLen);
+        lastLogLen = d.logs.length;
+        updateStepsFromLog(newLogs);
+
+        // Update status message with last meaningful log
+        const lastMeaningful = [...d.logs].reverse().find(l => l.type !== 'log');
+        if (lastMeaningful) {
+          const statusMsg = document.getElementById('setup-status-msg');
+          statusMsg.textContent = lastMeaningful.msg.replace(/\[OK\]|\[ERR\]|\[WARN\]|\[INFO\]/g, '').trim();
+        }
+
+        if (!d.running) {
+          clearInterval(setupPolling);
+          setupPolling = null;
+          const btn = document.getElementById('setup-btn');
+          const statusMsg = document.getElementById('setup-status-msg');
+          btn.disabled = false;
+
+          if (d.done) {
+            btn.textContent = '✓ Setup Complete';
+            statusMsg.textContent = 'All 6 steps completed successfully.';
+            statusMsg.style.color = 'var(--success)';
+            for (let i = 1; i <= 6; i++) markStep(i, 'done');
+            showToast('System setup completed successfully!', 'success', 6000);
+          } else {
+            btn.textContent = 'Retry Setup';
+            statusMsg.textContent = 'Setup finished with errors. Check your connections and try again.';
+            statusMsg.style.color = '#e87a7a';
+            const errLog = d.logs.findLast ? d.logs.findLast(l => l.type === 'error') : null;
+            if (errLog) showToast(errLog.msg.replace(/\[OK\]|\[ERR\]|\[WARN\]|\[INFO\]/g, '').trim().slice(0, 120), 'error', 8000);
+          }
+        }
+      } catch {}
+    }
+
+    // ── Cleanup ───────────────────────────────────────────────────────────────
+    let selectedCleanupMode = 'soft';
+    let cleanupPolling = null;
+    let cleanupLogLen  = 0;
+
+    function selectCleanupMode(mode) {
+      selectedCleanupMode = mode;
+      document.querySelectorAll('.cleanup-chip').forEach(c => c.classList.remove('active-chip'));
+      document.getElementById('chip-' + mode).classList.add('active-chip');
+      document.getElementById('hard-confirm-wrap').classList.toggle('hidden', mode !== 'hard');
+
+      const btn = document.getElementById('cleanup-btn');
+      const labels = { soft: 'Run Soft Reset', hard: 'Run Hard Reset', local: 'Run Local Cleanup' };
+      btn.textContent = labels[mode];
+      if (mode === 'hard') {
+        btn.style.cssText = 'border-color:rgba(158,74,74,0.5);color:#e87a7a';
+      } else {
+        btn.style.cssText = 'border-color:rgba(201,168,76,0.3);color:var(--gold)';
+      }
+    }
+
+    async function startCleanup() {
+      if (selectedCleanupMode === 'hard') {
+        const checked = document.getElementById('hard-confirm-check').checked;
+        if (!checked) {
+          showToast('Please check the confirmation box before running a hard reset.', 'error');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('cleanup-btn');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+      cleanupLogLen = 0;
+
+      const statusMsg = document.getElementById('cleanup-status-msg');
+      statusMsg.textContent = selectedCleanupMode.charAt(0).toUpperCase() + selectedCleanupMode.slice(1) + ' cleanup running...';
+      statusMsg.style.color = 'var(--text2)';
+      statusMsg.classList.remove('hidden');
+
+      try {
+        const r = await fetch(API + '/api/cleanup/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: selectedCleanupMode }),
+        });
+        const d = await r.json();
+        if (!r.ok) {
+          showToast(d.error || 'Failed to start cleanup', 'error');
+          btn.disabled = false;
+          selectCleanupMode(selectedCleanupMode);
+          statusMsg.classList.add('hidden');
+          return;
+        }
+      } catch (e) {
+        showToast('Network error: ' + e.message, 'error');
+        btn.disabled = false;
+        selectCleanupMode(selectedCleanupMode);
+        statusMsg.classList.add('hidden');
+        return;
+      }
+
+      cleanupPolling = setInterval(pollCleanup, 1000);
+    }
+
+    async function pollCleanup() {
+      try {
+        const r = await fetch(API + '/api/cleanup/status');
+        const d = await r.json();
+        cleanupLogLen = d.logs.length;
+
+        const statusMsg = document.getElementById('cleanup-status-msg');
+        const lastMeaningful = [...d.logs].reverse().find(l => l.type !== 'log');
+        if (lastMeaningful) {
+          statusMsg.textContent = lastMeaningful.msg.replace(/\[OK\]|\[ERR\]|\[WARN\]|\[INFO\]/g, '').trim();
+        }
+
+        if (!d.running) {
+          clearInterval(cleanupPolling);
+          cleanupPolling = null;
+          const btn = document.getElementById('cleanup-btn');
+          btn.disabled = false;
+          selectCleanupMode(selectedCleanupMode);
+
+          if (d.done) {
+            statusMsg.textContent = 'Cleanup completed successfully.';
+            statusMsg.style.color = 'var(--success)';
+            showToast(selectedCleanupMode.charAt(0).toUpperCase() + selectedCleanupMode.slice(1) + ' cleanup completed!', 'success', 5000);
+            const cb = document.getElementById('hard-confirm-check');
+            if (cb) cb.checked = false;
+            
+            // Re-fetch jobs so dashboard updates correctly 
+            loadRecentJobs();
+            
+            // Clear any active chat memory just in case the document got wiped
+            chatHistories = {};
+            if (currentJobId) {
+               currentJobId = null; 
+            }
+          } else {
+            const errLog = d.logs.findLast ? d.logs.findLast(l => l.type === 'error') : null;
+            const errMsg = errLog ? errLog.msg.replace(/\[OK\]|\[ERR\]|\[WARN\]|\[INFO\]/g, '').trim().slice(0, 120) : 'Cleanup finished with errors.';
+            statusMsg.textContent = errMsg;
+            statusMsg.style.color = '#e87a7a';
+            showToast(errMsg, 'error', 8000);
+          }
+        }
+      } catch {}
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    selectCleanupMode('soft');
+    checkHealth();
+    loadRecentJobs();
+    setInterval(checkHealth, 30000);
+  </script>
+</body>
+</html>
